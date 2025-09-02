@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect
 import json
+import boto3
 import logging
 from datetime import datetime, timedelta
 
@@ -7,35 +8,30 @@ from datetime import datetime, timedelta
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(message)s',
-    handlers=[
-        logging.FileHandler('cron_log.txt'),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.StreamHandler()]
 )
 
 app = Flask(__name__)
+s3 = boto3.client('s3')
+BUCKET = 'your-bucket'
 CRON_FILE = 'cron_jobs.json'
 
 def load_cron_jobs():
     try:
-        with open(CRON_FILE, 'r') as f:
-            data = json.load(f)
-            logging.info(f"Loaded cron_jobs.json: {data}")
-            return data
-    except FileNotFoundError:
-        logging.info("cron_jobs.json not found, returning empty list")
-        return []
+        obj = s3.get_object(Bucket=BUCKET, Key=CRON_FILE)
+        data = json.loads(obj['Body'].read())
+        logging.info(f"Loaded cron_jobs.json from S3: {data}")
+        return data
     except Exception as e:
-        logging.error(f"Error loading cron_jobs.json: {str(e)}")
+        logging.info(f"Error loading from S3: {str(e)}, returning empty list")
         return []
 
 def save_cron_jobs(cron_jobs):
     try:
-        with open(CRON_FILE, 'w') as f:
-            json.dump(cron_jobs, f, indent=2)
-        logging.info(f"Saved cron_jobs.json: {cron_jobs}")
+        s3.put_object(Bucket=BUCKET, Key=CRON_FILE, Body=json.dumps(cron_jobs))
+        logging.info(f"Saved cron_jobs.json to S3: {cron_jobs}")
     except Exception as e:
-        logging.error(f"Error saving cron_jobs.json: {str(e)}")
+        logging.error(f"Error saving to S3: {str(e)}")
 
 @app.route('/')
 def index():

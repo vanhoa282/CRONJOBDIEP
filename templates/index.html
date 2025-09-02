@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cron Job Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .box { border: 1px solid #ccc; padding: 10px; margin-bottom: 20px; }
+        .cron-item { margin: 10px 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Cron Job Manager</h1>
+    
+    <!-- Box hiển thị danh sách Cron Jobs -->
+    <div class="box">
+        <h2>Current Cron Jobs ({{ cron_jobs|length }})</h2>
+        <p><strong>Running:</strong> {{ running|length }} | <strong>Stopped:</strong> {{ stopped|length }}</p>
+        <table>
+            <tr>
+                <th>Cron</th>
+                <th>Status</th>
+                <th>Last Run</th>
+                <th>Next Run</th>
+                <th>Actions</th>
+            </tr>
+            {% for cron in cron_jobs %}
+            <tr>
+                <td>{{ cron.link }} ({{ cron.method }}, every {{ cron.interval }}s)</td>
+                <td>{{ '✅' if cron.status == 'running' else '❎' }}</td>
+                <td>{{ cron.last_run or 'Never' }}</td>
+                <td>{{ cron.next_run or 'N/A' }}</td>
+                <td>
+                    {% if cron.status == 'stopped' %}
+                    <a href="/restart/{{ cron.id }}">Restart</a>
+                    {% endif %}
+                    <a href="/delete/{{ cron.id }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Box thêm Cron Job -->
+    <div class="box">
+        <h2>Add New Cron Job</h2>
+        <form method="POST" action="/add">
+            <label>Link:</label><br>
+            <input type="text" name="link" required><br>
+            <label>Interval (seconds):</label><br>
+            <input type="number" name="interval" min="1" required><br>
+            <label>Method:</label><br>
+            <select name="method">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+            </select><br><br>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+
+    <!-- Box lịch sử -->
+    <div class="box">
+        <h2>History</h2>
+        <table>
+            <tr>
+                <th>Cron</th>
+                <th>Status</th>
+                <th>Last Run</th>
+                <th>Next Run</th>
+                <th>Action</th>
+            </tr>
+            {% for cron in cron_jobs %}
+            <tr>
+                <td>{{ cron.link }}</td>
+                <td>{{ '✅ Running' if cron.status == 'running' else '❎ Stopped' }}</td>
+                <td>{{ cron.last_run or 'Never' }}</td>
+                <td>{{ cron.next_run or 'N/A' }}</td>
+                <td><a href="/delete/{{ cron.id }}">Delete</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
